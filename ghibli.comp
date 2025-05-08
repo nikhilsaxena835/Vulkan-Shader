@@ -1,0 +1,180 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0) buffer InputImage {
+    uint pixels[];
+} inputImage;
+
+layout(binding = 1) buffer OutputImage {
+    uint pixels[];
+} outputImage;
+
+layout(push_constant) uniform PushConstants {
+    int width;
+    int height;
+} pushConstants;
+
+// Helper function to convert uint pixel to vec4 (RGBA)
+vec4 unpackPixel(uint pixel) {
+    return vec4(
+        float((pixel >> 0)  & 0xFF) / 255.0,
+        float((pixel >> 8)  & 0xFF) / 255.0,
+        float((pixel >> 16) & 0xFF) / 255.0,
+        float((pixel >> 24) & 0xFF) / 255.0
+    );
+}
+
+// Helper function to pack vec4 to uint pixel
+uint packPixel(vec4 color) {
+    uint r = uint(clamp(color.r, 0.0, 1.0) * 255.0);
+    uint g = uint(clamp(color.g, 0.0, 1.0) * 255.0);
+    uint b = uint(clamp(color.b, 0.0, 1.0) * 255.0);
+    uint a = uint(clamp(color.a, 0.0, 1.0) * 255.0);
+    return (a << 24) | (b << 16) | (g << 8) | r;
+}
+
+// Get color from image with bounds checking
+vec4 getColor(int x, int y) {
+    x = clamp(x, 0, pushConstants.width - 1);
+    y = clamp(y, 0, pushConstants.height - 1);
+    uint idx = y * pushConstants.width + x;
+    return unpackPixel(inputImage.pixels[idx]);
+}
+
+// Calculate color similarity (returns 0-1, where 1 is identical)
+float colorSimilarity(vec3 colorA, vec3 colorB) {
+    vec3 diff = abs(colorA - colorB);
+    return 1.0 - (diff.r + diff.g + diff.b) / 3.0;
+}
+
+vec3 enhanceGhibliColor(vec3 color) {
+    // Increase saturation for vibrant colors
+    float luminance = dot(color, vec3(0.299, 0.587, 0.114));
+    vec3 saturatedColor = mix(vec3(luminance), color, 1.7); 
+    
+    // Adjust color curves for brighter, more vivid Ghibli look
+    vec3 adjustedColor;
+    adjustedColor.r = pow(saturatedColor.r, 0.8) * 2.0; // Brighten reds
+    adjustedColor.g = pow(saturatedColor.g, 0.8) * 2.0; // Brighten greens
+    adjustedColor.b = pow(saturatedColor.b, 0.85) * 2.0; // Slightly less boost for blues
+    
+    // Enhance specific Ghibli color tones with brighter adjustments
+    if (color.b > color.r && color.b > color.g) {
+        // Sky blue: make brighter and more vibrant
+        adjustedColor.b *= 1.1;
+        adjustedColor.r *= 0.9;
+        adjustedColor.g *= 0.95;
+    } else if (color.r > 0.5 && color.g > 0.5 && color.b < 0.5) {
+        // Warm yellow/gold: amplify brightness
+        adjustedColor.r *= 1.45;
+        adjustedColor.g *= 1.1;
+    } else if (color.g > color.r && color.g > color.b) {
+        // Green (foliage): brighter yellow-green
+        adjustedColor.g *= 1.15;
+        adjustedColor.r *= 1.1;
+    }
+    
+    return clamp(adjustedColor, 0.0, 1.0);
+}
+
+// Apply region-based color averaging
+vec3 applyRegionColor(uint x, uint y) {
+    vec4 centerColor = getColor(int(x), int(y));
+    
+    // Parameters for region detection
+    const int radius = 3;
+    const float similarityThreshold = 0.95;
+    
+    // Accumulate similar colors in the region
+    vec3 sumColor = vec3(0.0);
+    float totalWeight = 0.0;
+    
+    for (int offsetY = -radius; offsetY <= radius; offsetY++) {
+        for (int offsetX = -radius; offsetX <= radius; offsetX++) {
+            vec4 neighborColor = getColor(int(x) + offsetX, int(y) + offsetY);
+            float similarity = colorSimilarity(centerColor.rgb, neighborColor.rgb);
+            
+            if (similarity > similarityThreshold) {
+                float dist = length(vec2(offsetX, offsetY));
+                float weight = max(0.0, radius - dist) / radius;
+                sumColor += neighborColor.rgb * weight;
+                totalWeight += weight;
+            }
+        }
+    }
+    
+    vec3 regionColor = (totalWeight > 0.0) ? (sumColor / totalWeight) : centerColor.rgb;
+    return enhanceGhibliColor(regionColor);
+}
+
+// Detect edges for outlines
+float detectEdges(uint x, uint y) {
+    vec3 cc = getColor(int(x), int(y)).rgb;
+    vec3 tl = getColor(int(x)-1, int(y)-1).rgb;
+    vec3 tc = getColor(int(x), int(y)-1).rgb;
+    vec3 tr = getColor(int(x)+1, int(y)-1).rgb;
+    vec3 lc = getColor(int(x)-1, int(y)).rgb;
+    vec3 rc = getColor(int(x)+1, int(y)).rgb;
+    vec3 bl = getColor(int(x)-1, int(y)+1).rgb;
+    vec3 bc = getColor(int(x), int(y)+1).rgb;
+    vec3 br = getColor(int(x)+1, int(y)+1).rgb;
+    
+    float tlL = dot(tl, vec3(0.299, 0.587, 0.114));
+    float tcL = dot(tc, vec3(0.299, 0.587, 0.114));
+    float trL = dot(tr, vec3(0.299, 0.587, 0.114));
+    float lcL = dot(lc, vec3(0.299, 0.587, 0.114));
+    float ccL = dot(cc, vec3(0.299, 0.587, 0.114));
+    float rcL = dot(rc, vec3(0.299, 0.587, 0.114));
+    float blL = dot(bl, vec3(0.299, 0.587, 0.114));
+    float bcL = dot(bc, vec3(0.299, 0.587, 0.114));
+    float brL = dot(br, vec3(0.299, 0.587, 0.114));
+    
+    float sobelX = (trL + 2.0 * rcL + brL) - (tlL + 2.0 * lcL + blL);
+    float sobelY = (blL + 2.0 * bcL + brL) - (tlL + 2.0 * tcL + trL);
+    float edgeStrength = sqrt(sobelX * sobelX + sobelY * sobelY);
+    
+    return edgeStrength;
+}
+
+// Quantize color to create cel-shading effect
+vec3 quantizeColor(vec3 color, int levels) {
+    return floor(color * float(levels)) / float(levels);
+}
+
+// Apply subtle painterly texture
+float paperTexture(vec2 uv) {
+    float noise = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+    return noise * 0.02 - 0.01; // Reduced texture strength for brighter colors
+}
+
+void main() {
+    uint x = gl_GlobalInvocationID.x;
+    uint y = gl_GlobalInvocationID.y;
+    
+    if (x >= pushConstants.width || y >= pushConstants.height) {
+        return;
+    }
+    
+    uint idx = y * pushConstants.width + x;
+    vec4 originalColor = unpackPixel(inputImage.pixels[idx]);
+    
+    // Step 1: Calculate region-based color
+    vec3 regionColor = applyRegionColor(x, y);
+    
+    // Step 2: Quantize colors to create cel-shading effect
+    vec3 celShadedColor = quantizeColor(regionColor, 6); // Increased levels for brighter gradients
+    
+    // Step 3: Detect edges
+    float edgeStrength = detectEdges(x, y);
+    bool isEdge = edgeStrength > 0.15;
+    
+    // Step 4: Apply edge darkening
+    vec3 colorWithEdges = isEdge ? mix(celShadedColor, vec3(0.1, 0.1, 0.15), 0.7) : celShadedColor;
+    
+    // Step 5: Add subtle paper texture
+    vec2 uv = vec2(float(x) / float(pushConstants.width), float(y) / float(pushConstants.height));
+    vec3 finalColor = colorWithEdges + paperTexture(uv);
+    
+    // Step 6: Keep original alpha
+    outputImage.pixels[idx] = packPixel(vec4(finalColor, originalColor.a));
+}

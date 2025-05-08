@@ -1,0 +1,40 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0) buffer InputImage {
+    uint pixels[];
+} inputImage;
+
+layout(binding = 1) buffer OutputImage {
+    uint pixels[];
+} outputImage;
+
+layout(push_constant) uniform PushConstants {
+    int width;
+    int height;
+} pushConstants;
+
+void main() {
+    uint x = gl_GlobalInvocationID.x;
+    uint y = gl_GlobalInvocationID.y;
+    
+    if (x >= pushConstants.width || y >= pushConstants.height) {
+        return;
+    }
+    
+    uint idx = y * pushConstants.width + x;
+    
+    // Each pixel is 4 bytes (RGBA)
+    uint baseIndex = idx * 4;
+    
+    // Read RGBA values as individual bytes
+    uint r = (inputImage.pixels[baseIndex/4] >> 0)  & 0xFF;
+    uint g = (inputImage.pixels[baseIndex/4] >> 8)  & 0xFF;
+    uint b = (inputImage.pixels[baseIndex/4] >> 16) & 0xFF;
+    uint a = (inputImage.pixels[baseIndex/4] >> 24) & 0xFF;
+    
+    // Calculate grayscale
+    uint gray = uint(float(r) * 0.3 + float(g) * 0.59 + float(b) * 0.11);
+    
+    outputImage.pixels[baseIndex/4] = gray | (gray << 8) | (gray << 16) | (0xFF << 24);
+}
