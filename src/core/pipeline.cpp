@@ -4,13 +4,15 @@
 #include <stdexcept>
 #include <cstring>
 #include <fstream>
+
 #define VK_CHECK(result) if (result != VK_SUCCESS) { \
     fprintf(stderr, "Error: %d at line %d\n", result, __LINE__); \
     exit(1); \
 }
 
 ComputePipeline::ComputePipeline(VulkanEngine& engine, const std::string& shaderPath, int width, int height)
-    : engine(engine), width(width), height(height) {
+    : engine(engine), width(width), height(height) 
+{
     inputBuffer = outputBuffer = maskBuffer = VK_NULL_HANDLE;
     inputMemory = outputMemory = maskMemory = VK_NULL_HANDLE;
     descriptorSet = VK_NULL_HANDLE;
@@ -91,7 +93,8 @@ void ComputePipeline::createDescriptorPool() {
 void ComputePipeline::createPipeline(const std::string& shaderPath) 
 {
     std::ifstream file(shaderPath, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) throw std::runtime_error("Failed to open shader file: " + shaderPath);
+    if (!file.is_open()) 
+    throw std::runtime_error("Failed to open shader file: " + shaderPath);
 
     size_t fileSize = file.tellg();
     std::vector<char> shaderCode(fileSize);

@@ -13,7 +13,7 @@ public:
     VkDevice getDevice() const { return device; }
     VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
     VkQueue getComputeQueue() const { return computeQueue; }
-    uint32_t getComputeQueueFamily() const { return computeQueueFamily; }
+    uint32_t getComputeQueueFamily() const { return computeQueueFamilyIndex; }
     VkCommandPool getCommandPool() const { return commandPool; }
 
 private:
@@ -21,7 +21,7 @@ private:
     VkPhysicalDevice physicalDevice;
     VkDevice device;
     VkQueue computeQueue;
-    uint32_t computeQueueFamily;
+    uint32_t computeQueueFamilyIndex;
     VkCommandPool commandPool;
 
     void createInstance();

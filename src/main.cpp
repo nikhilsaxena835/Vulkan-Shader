@@ -16,7 +16,7 @@ This program works as follows :
 #include <iostream>
 #include <filesystem>
 #include "io/video_io.hpp"
-
+#include "core/vulkan_engine.hpp"
 
 
 
@@ -56,7 +56,9 @@ int main(int argc, char* argv[])
 
         std::cout << "Extracting frames from video ..." << std::endl;
         extractFrames(videoPath, tempFramesDir);
-
+        
+        VulkanEngine engine;
+        
         if(objectDetection){
             std::cout << "Masking frames ..." << std::endl;
 

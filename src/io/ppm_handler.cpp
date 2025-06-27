@@ -2,13 +2,15 @@
 #include <fstream>
 #include <stdexcept>
 
-void loadPPMImage(const char* filename, std::vector<unsigned char>& data, int& width, int& height) {
+void loadPPMImage(const char* filename, std::vector<unsigned char>& data, int& width, int& height) 
+{
     std::ifstream file(filename, std::ios::binary);
     if (!file) throw std::runtime_error("Error: Check filename or path again.");
 
     std::string header;
     file >> header;
-    if (header != "P6") throw std::runtime_error("Unsupported file format");
+    if (header != "P6") 
+    throw std::runtime_error("Unsupported file format");
 
     file >> width >> height;
     int maxColorValue;
@@ -17,7 +19,9 @@ void loadPPMImage(const char* filename, std::vector<unsigned char>& data, int& w
 
     std::vector<unsigned char> rgbData(width * height * 3);
     file.read(reinterpret_cast<char*>(rgbData.data()), rgbData.size());
-    if (!file) throw std::runtime_error("Error reading pixel data from the file.");
+
+    if (!file) 
+    throw std::runtime_error("Error reading pixel data from the file.");
 
     data.resize(width * height * 4);
     for (int i = 0; i < width * height; i++) {

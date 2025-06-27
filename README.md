@@ -17,3 +17,7 @@ Vulkan SDK some version
 CMake some verison
 ImGUI
 YOLOv8 segmentation
+
+The outline is as follows : 
+vulkan engine gives me the instance, compute queue, logical device and the command buffers
+
