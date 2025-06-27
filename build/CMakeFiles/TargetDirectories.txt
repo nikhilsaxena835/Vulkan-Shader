@@ -1,0 +1,7 @@
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/NPlayer.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/edit_cache.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/rebuild_cache.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/list_install_components.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/install.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/install/local.dir
+/home/nikhil-saxena/Documents/GitHub/NPlayer/build/CMakeFiles/install/strip.dir
