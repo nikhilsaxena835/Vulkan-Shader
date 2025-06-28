@@ -37,13 +37,13 @@ void ShaderManager::loadShadersFromDirectory()
             if (std::find(classLabels.begin(), classLabels.end(), shaderName) != classLabels.end()) 
             {
                 std::string shaderPath = entry.path().string();
-                pipelines[shaderName] = std::make_shared<ComputePipeline>(engine, shaderPath, 0, 0); // Dimensions set later
+                pipelines[shaderName] = std::make_shared<ComputePipeline>(engine, shaderPath, 0, 0);
             }
         }
     }
 }
 
-void ShaderManager::loadShaders(const std::string& shaderPath) 
+void ShaderManager::loadShader(const std::string& shaderPath) 
 {
     pipelines["classic"] = std::make_shared<ComputePipeline>(engine, shaderPath, 0, 0);
 }

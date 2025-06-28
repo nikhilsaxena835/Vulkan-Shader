@@ -2,8 +2,6 @@
 #include <iostream>
 
 
-
-
 /*
 Though system() is not safe, we will still do it this way. The command has two parts. 
 Part one checks for the ffmpeg version. And part two has two subparts. First we redirect 
@@ -28,4 +26,20 @@ void extractFrames(const std::string& videoPath, const std::string& outputDir)
     if (system(command.c_str()) != 0) 
         throw std::runtime_error("Failed to extract frames from video");
     
+}
+
+void createVideo(const std::string& inputFramesDir, const std::string& outputVideo, const std::string& inputVideo, int framerate = 30) 
+{
+    std::string command = "ffmpeg -framerate " + std::to_string(framerate) + 
+                    " -i \"" + inputFramesDir + "/processed_frame_%d.ppm\" " +
+                    " -i \"" + inputVideo + "\" " +  // Add input video as second input
+                    "-c:v libx264 -pix_fmt yuv420p " +
+                    "-c:a copy " +  // Copy audio stream without re-encoding
+                    "-map 0:v:0 " +  // Map video from first input (processed frames)
+                    "-map 1:a:0 " +  // Map audio from second input (original video)
+                    "\"" + outputVideo + "\" 2>/dev/null";
+                    
+    if (system(command.c_str()) != 0) {
+        throw std::runtime_error("Failed to create output video");
+    }
 }

@@ -4,18 +4,23 @@
 #include <sstream>
 
 ObjectDetector::ObjectDetector(const std::string& modelPath, const std::string& classLabelsPath) 
-    : confidenceThreshold(0.5f), nmsThreshold(0.4f) {
+    : confidenceThreshold(0.5f), nmsThreshold(0.4f) 
+    {
     net = cv::dnn::readNetFromONNX(modelPath);
-    if (net.empty()) throw std::runtime_error("Failed to load YOLOv8 model: " + modelPath);
 
-    // Load class labels from coco.names
+    if (net.empty()) 
+    throw std::runtime_error("Failed to load YOLOv8 model: " + modelPath);
+
     std::ifstream file(classLabelsPath);
-    if (!file.is_open()) throw std::runtime_error("Failed to open coco.names file: " + classLabelsPath);
+    if (!file.is_open()) 
+    throw std::runtime_error("Failed to open coco.names file: " + classLabelsPath);
+
     std::string line;
-    while (std::getline(file, line)) {
-        if (!line.empty()) {
+    while (std::getline(file, line)) 
+    {
+        if (!line.empty()) 
             classLabels.push_back(line);
-        }
+        
     }
     file.close();
 }
@@ -28,12 +33,16 @@ void ObjectDetector::detect(const cv::Mat& frame, std::vector<std::pair<std::str
 
     std::vector<cv::Mat> outputs;
     net.forward(outputs);
-
+    /*
+    Use NMS to further post-process things.
+    Write detailed opencv instructions.
+    */
     classMasks.clear();
     cv::Mat output = outputs[0]; // Shape: [1, num_proposals, data]
     for (int i = 0; i < output.rows; i++) {
         float conf = output.at<float>(i, 4); // Confidence score
-        if (conf > confidenceThreshold) {
+        if (conf > confidenceThreshold) 
+        {
             int classId = static_cast<int>(output.at<float>(i, 5)); // Example: class ID position
             if (classId >= 0 && classId < classLabels.size()) {
                 cv::Mat mask(32, 32, CV_32F, output.ptr(i, output.cols - 32 * 32)); // Example mask size

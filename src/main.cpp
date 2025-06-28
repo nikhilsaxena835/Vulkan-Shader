@@ -17,7 +17,7 @@ This program works as follows :
 #include <filesystem>
 #include "io/video_io.hpp"
 #include "core/vulkan_engine.hpp"
-
+#include "processing/frame_processor.hpp"
 
 
 int main(int argc, char* argv[])
@@ -60,9 +60,16 @@ int main(int argc, char* argv[])
         VulkanEngine engine;
         
         if(objectDetection){
-            std::cout << "Masking frames ..." << std::endl;
-
+            std::cout << "Masking frames and applying shaders ..." << std::endl;
+            FrameProcessor fp (engine, tempFramesDir, processedFramesDir);
         }
+        else{
+            std::cout << "Applying shaders ..." << std::endl;
+            FrameProcessor fp (engine, tempFramesDir, processedFramesDir, shaderPath);
+        }
+
+        std::cout << "Making video " << std::endl;
+        createVideo(processedFramesDir, outputVideo, inputPath, 30);
     }
     catch (const std::exception& e) 
     {

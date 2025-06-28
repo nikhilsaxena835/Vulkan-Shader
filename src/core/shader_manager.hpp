@@ -13,7 +13,7 @@ public:
     ~ShaderManager();
 
     void loadShadersFromDirectory();
-    void loadShaders(const std::string& shaderName); 
+    void loadShader(const std::string& shaderName); 
 
     std::shared_ptr<ComputePipeline> getPipeline(const std::string& name);
     void setDimensions(int width, int height);
