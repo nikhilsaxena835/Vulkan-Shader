@@ -1,5 +1,12 @@
 You need to install Vulkan.
 
+glslangValidator -V -o output.spv input.comp
+
+
+To run : 
+1) go to build folder and from there run cmake ..
+2) run make
+3) run  NPlayer.
 
 person, bicycle, car, motorcycle, airplane, bus, train, truck, boat, traffic light,
 fire hydrant, stop sign, parking meter, bench, bird, cat, dog, horse, sheep, cow,

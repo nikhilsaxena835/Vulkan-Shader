@@ -24,7 +24,7 @@ void extractFrames(const std::string& videoPath, const std::string& outputDir)
                       outputDir + "/frame_%d.ppm\" -start_number 1 2>/dev/null";
 
     if (system(command.c_str()) != 0) 
-        throw std::runtime_error("Failed to extract frames from video");
+        throw std::runtime_error("Failed to extract frames from video : " + videoPath);
     
 }
 
@@ -37,7 +37,7 @@ void createVideo(const std::string& inputFramesDir, const std::string& outputVid
                     "-c:a copy " +  // Copy audio stream without re-encoding
                     "-map 0:v:0 " +  // Map video from first input (processed frames)
                     "-map 1:a:0 " +  // Map audio from second input (original video)
-                    "\"" + outputVideo + "\" 2>/dev/null";
+                    "\"" + outputVideo + "\"";
                     
     if (system(command.c_str()) != 0) {
         throw std::runtime_error("Failed to create output video");

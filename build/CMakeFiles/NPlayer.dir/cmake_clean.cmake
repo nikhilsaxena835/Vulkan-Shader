@@ -1,5 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/NPlayer.dir/link.d"
   "CMakeFiles/NPlayer.dir/src/core/buffer_manager.cpp.o"
   "CMakeFiles/NPlayer.dir/src/core/buffer_manager.cpp.o.d"
   "CMakeFiles/NPlayer.dir/src/core/pipeline.cpp.o"

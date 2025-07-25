@@ -210,37 +210,15 @@ CMakeFiles/NPlayer.dir/src/processing/frame_processor.cpp.o: \
  /usr/include/c++/13/bits/sstream.tcc /usr/include/c++/13/codecvt \
  /usr/include/c++/13/bits/fs_dir.h /usr/include/c++/13/bits/fs_ops.h \
  /home/nikhil-saxena/Documents/GitHub/NPlayer/src/core/pipeline.hpp \
+ /usr/include/c++/13/set /usr/include/c++/13/bits/stl_tree.h \
+ /usr/include/c++/13/bits/stl_set.h \
+ /usr/include/c++/13/bits/stl_multiset.h \
  /home/nikhil-saxena/Documents/GitHub/NPlayer/src/processing/object_detector.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/opencv.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/opencv_modules.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cvdef.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/version.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/hal/interface.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cv_cpu_dispatch.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/emmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/xmmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/mmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/mm_malloc.h \
- /usr/include/c++/13/stdlib.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/base.hpp \
- /usr/include/c++/13/climits \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h \
- /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
- /usr/include/x86_64-linux-gnu/bits/local_lim.h \
- /usr/include/linux/limits.h \
- /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
- /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
- /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
- /usr/include/c++/13/algorithm /usr/include/c++/13/bits/stl_algo.h \
- /usr/include/c++/13/bits/algorithmfwd.h \
- /usr/include/c++/13/bits/stl_heap.h \
- /usr/include/c++/13/bits/uniform_int_dist.h \
- /usr/include/c++/13/pstl/glue_algorithm_defs.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cvstd.hpp \
- /usr/include/c++/13/cstring /usr/include/string.h /usr/include/strings.h \
- /usr/include/c++/13/utility /usr/include/c++/13/bits/stl_relops.h \
+ /usr/local/include/onnxruntime_cxx_api.h \
+ /usr/local/include/onnxruntime_c_api.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h \
+ /usr/include/c++/13/stdlib.h /usr/include/string.h \
+ /usr/include/strings.h /usr/local/include/onnxruntime_float16.h \
  /usr/include/c++/13/cmath /usr/include/math.h \
  /usr/include/x86_64-linux-gnu/bits/math-vector.h \
  /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
@@ -262,134 +240,20 @@ CMakeFiles/NPlayer.dir/src/processing/frame_processor.cpp.o: \
  /usr/include/c++/13/tr1/modified_bessel_func.tcc \
  /usr/include/c++/13/tr1/poly_hermite.tcc \
  /usr/include/c++/13/tr1/poly_laguerre.tcc \
- /usr/include/c++/13/tr1/riemann_zeta.tcc \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cvstd_wrapper.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/neon_utils.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/vsx_utils.hpp \
- /usr/include/assert.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/check.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/traits.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/matx.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/saturate.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/fast_math.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/matx.inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/types.hpp \
- /usr/include/c++/13/cfloat \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/float.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/mat.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/bufferpool.hpp \
+ /usr/include/c++/13/tr1/riemann_zeta.tcc /usr/include/c++/13/cstring \
  /usr/include/c++/13/array /usr/include/c++/13/compare \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/mat.inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/persistence.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/operations.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cvstd.inl.hpp \
- /usr/include/c++/13/complex \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/utility.hpp \
+ /usr/include/c++/13/utility /usr/include/c++/13/bits/stl_relops.h \
+ /usr/local/include/onnxruntime_cxx_inline.h \
  /usr/include/c++/13/functional /usr/include/c++/13/bits/std_function.h \
- /usr/include/c++/13/mutex /usr/include/c++/13/bits/std_mutex.h \
- /usr/include/c++/13/bits/unique_lock.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/optim.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/ovx.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cvdef.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/calib3d.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/features2d.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/miniflann.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/defines.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/config.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/affine.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/utils/logger.hpp \
- /usr/include/c++/13/iostream \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/utils/logger.defines.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/utils/logtag.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/dnn.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/async.hpp \
- /usr/include/c++/13/chrono \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/version.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/dict.hpp \
- /usr/include/c++/13/map /usr/include/c++/13/bits/stl_tree.h \
+ /usr/include/c++/13/bits/stl_algo.h \
+ /usr/include/c++/13/bits/algorithmfwd.h \
+ /usr/include/c++/13/bits/stl_heap.h \
+ /usr/include/c++/13/bits/uniform_int_dist.h /usr/include/c++/13/map \
  /usr/include/c++/13/bits/stl_map.h \
  /usr/include/c++/13/bits/stl_multimap.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/layer.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/dnn.inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/utils/inference_engine.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/dnn/dnn.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/flann_base.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/general.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/matrix.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/params.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/any.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/defines.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/saving.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/nn_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/result_set.h \
- /usr/include/c++/13/set /usr/include/c++/13/bits/stl_set.h \
- /usr/include/c++/13/bits/stl_multiset.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/all_indices.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/kdtree_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/dynamic_bitset.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/dist.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/heap.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/allocator.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/random.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/kdtree_single_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/kmeans_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/logger.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/composite_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/linear_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/hierarchical_clustering_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/lsh_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/lsh_table.h \
- /usr/include/c++/13/math.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/autotuned_index.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/ground_truth.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/index_testing.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/timer.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/flann/sampling.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/highgui.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/imgcodecs.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/videoio.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/imgproc.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/imgproc/segmentation.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/ml.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/ml/ml.inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/aruco_detector.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/aruco_dictionary.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/aruco_board.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/graphical_code_detector.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/detection_based_tracker.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/face.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/charuco_detector.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/objdetect/barcode.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/photo.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/warpers.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/warpers.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cuda.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cuda_types.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/core/cuda.inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/warpers_inl.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/warpers.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/matchers.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/motion_estimators.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/matchers.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/util.hpp \
- /usr/include/c++/13/list /usr/include/c++/13/bits/stl_list.h \
- /usr/include/c++/13/bits/list.tcc \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/util_inl.hpp \
- /usr/include/c++/13/queue /usr/include/c++/13/deque \
- /usr/include/c++/13/bits/stl_deque.h /usr/include/c++/13/bits/deque.tcc \
- /usr/include/c++/13/bits/stl_queue.h \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/camera.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/exposure_compensate.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/seam_finders.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/blenders.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/stitching/detail/camera.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/video.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/video/tracking.hpp \
- /home/nikhil-saxena/anaconda3/include/opencv4/opencv2/video/background_segm.hpp \
  /home/nikhil-saxena/Documents/GitHub/NPlayer/src/processing/mask_generator.hpp \
  /home/nikhil-saxena/Documents/GitHub/NPlayer/src/io/ppm_handler.hpp \
+ /usr/include/c++/13/algorithm \
+ /usr/include/c++/13/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/13/iostream \
  /home/nikhil-saxena/Documents/GitHub/NPlayer/src/config.h

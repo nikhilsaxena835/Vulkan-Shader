@@ -18,7 +18,6 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/nikhil-saxena/Documents/GitHub/NPlayer/src/processing/frame_processor.cpp" "CMakeFiles/NPlayer.dir/src/processing/frame_processor.cpp.o" "gcc" "CMakeFiles/NPlayer.dir/src/processing/frame_processor.cpp.o.d"
   "/home/nikhil-saxena/Documents/GitHub/NPlayer/src/processing/mask_generator.cpp" "CMakeFiles/NPlayer.dir/src/processing/mask_generator.cpp.o" "gcc" "CMakeFiles/NPlayer.dir/src/processing/mask_generator.cpp.o.d"
   "/home/nikhil-saxena/Documents/GitHub/NPlayer/src/processing/object_detector.cpp" "CMakeFiles/NPlayer.dir/src/processing/object_detector.cpp.o" "gcc" "CMakeFiles/NPlayer.dir/src/processing/object_detector.cpp.o.d"
-  "" "NPlayer" "gcc" "CMakeFiles/NPlayer.dir/link.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

@@ -47,8 +47,12 @@ if(NOT VULKAN_LIBRARY OR NOT VULKAN_INCLUDE_DIR)
 endif()
 
 # Find OpenCV
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+#find_package(OpenCV REQUIRED)
+#include_directories(${OpenCV_INCLUDE_DIRS})
+
+# Find ONNX Runtime
+find_library(ONNXRUNTIME_LIB onnxruntime PATHS /usr/local/lib)
+include_directories(/usr/local/include)
 
 # Include directories
 include_directories(
@@ -60,7 +64,8 @@ include_directories(
 # Link all required libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${VULKAN_LIBRARY}
-    ${OpenCV_LIBS}
+    #${OpenCV_LIBS}
+    ${ONNXRUNTIME_LIB}
 )
 
 

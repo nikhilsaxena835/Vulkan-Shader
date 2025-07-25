@@ -37,6 +37,7 @@ void ShaderManager::loadShadersFromDirectory()
             if (std::find(classLabels.begin(), classLabels.end(), shaderName) != classLabels.end()) 
             {
                 std::string shaderPath = entry.path().string();
+                shadersAvailable.insert(shaderName);
                 pipelines[shaderName] = std::make_shared<ComputePipeline>(engine, shaderPath, 0, 0);
             }
         }
@@ -61,4 +62,9 @@ void ShaderManager::setDimensions(int width, int height)
     for (auto& pair : pipelines) 
         pair.second->setDimensions(width, height);
     
+}
+
+std::set<std::string> ShaderManager::getAvailableClasses()
+{
+    return ShaderManager::shadersAvailable;
 }

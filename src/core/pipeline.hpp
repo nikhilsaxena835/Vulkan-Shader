@@ -11,7 +11,8 @@ public:
     ~ComputePipeline();
 
     void processImage(const std::vector<unsigned char>& inputData, std::vector<unsigned char>& outputData,
-                      const std::vector<unsigned char>& maskData = {});
+                      const std::vector<unsigned char>& maskData);
+    void processImage(const std::vector<unsigned char>& inputData, std::vector<unsigned char>& outputData);
     void setDimensions(int width, int height);
 
 private:
@@ -29,7 +30,9 @@ private:
     void createDescriptorPool();
     void createPipeline(const std::string& shaderPath);
     void createBuffers(const std::vector<unsigned char>& inputData, const std::vector<unsigned char>& maskData);
+    void createBuffers(const std::vector<unsigned char>& inputData);
     void createDescriptorSet();
+    void createDescriptorSet(bool useMask);
     void runCompute();
     void cleanupBuffers();
 };

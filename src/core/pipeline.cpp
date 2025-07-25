@@ -42,6 +42,40 @@ void ComputePipeline::processImage(const std::vector<unsigned char>& inputData, 
     createDescriptorSet();
     runCompute();
 
+    VkMappedMemoryRange range = {};
+    range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    range.memory = outputMemory;
+    range.offset = 0;
+    range.size = width * height * 4;
+    vkInvalidateMappedMemoryRanges(engine.getDevice(), 1, &range);
+
+    void* mappedMemory;
+    vkMapMemory(engine.getDevice(), outputMemory, 0, width * height * 4, 0, &mappedMemory);
+    outputData.resize(width * height * 4);
+    memcpy(outputData.data(), mappedMemory, width * height * 4);
+    vkUnmapMemory(engine.getDevice(), outputMemory);
+    //void* mappedMemory;
+    //vkMapMemory(engine.getDevice(), outputMemory, 0, width * height * 4, 0, &mappedMemory);
+    //outputData.resize(width * height * 4);
+    //memcpy(outputData.data(), mappedMemory, width * height * 4);
+    //vkUnmapMemory(engine.getDevice(), outputMemory);
+}
+
+void ComputePipeline::processImage(const std::vector<unsigned char>& inputData,
+                                   std::vector<unsigned char>& outputData) {
+    // Overloaded version without mask
+    cleanupBuffers();
+    createBuffers(inputData); // No maskData
+    createDescriptorSet(false); // No mask
+    runCompute();
+
+    VkMappedMemoryRange range = {};
+    range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    range.memory = outputMemory;
+    range.offset = 0;
+    range.size = width * height * 4;
+    vkInvalidateMappedMemoryRanges(engine.getDevice(), 1, &range);
+
     void* mappedMemory;
     vkMapMemory(engine.getDevice(), outputMemory, 0, width * height * 4, 0, &mappedMemory);
     outputData.resize(width * height * 4);
@@ -113,7 +147,7 @@ void ComputePipeline::createPipeline(const std::string& shaderPath)
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(int) * 2 + sizeof(float);
+    pushConstantRange.size = sizeof(int) * 2; // Only width and height
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -137,28 +171,41 @@ void ComputePipeline::createPipeline(const std::string& shaderPath)
     vkDestroyShaderModule(engine.getDevice(), shaderModule, nullptr);
 }
 
-void ComputePipeline::createBuffers(const std::vector<unsigned char>& inputData, const std::vector<unsigned char>& maskData) {
+// Modified createBuffers with optional maskData
+void ComputePipeline::createBuffers(const std::vector<unsigned char>& inputData,
+                                    const std::vector<unsigned char>& maskData) {
     VkDeviceSize bufferSize = width * height * 4;
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(engine.getPhysicalDevice(), &properties);
+    VkDeviceSize alignment = properties.limits.minStorageBufferOffsetAlignment;
+    bufferSize = (bufferSize + alignment - 1) & ~(alignment - 1);
 
     BufferManager bufferManager(engine);
     bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                              inputBuffer, inputMemory);
-    bufferManager.copyDataToBuffer(inputMemory, inputData.data(), bufferSize);
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            inputBuffer, inputMemory);
+    bufferManager.copyDataToBuffer(inputMemory, inputData.data(), width * height * 4);
 
     bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                              outputBuffer, outputMemory);
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            outputBuffer, outputMemory);
 
     if (!maskData.empty()) {
         bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                  maskBuffer, maskMemory);
-        bufferManager.copyDataToBuffer(maskMemory, maskData.data(), bufferSize);
+                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                maskBuffer, maskMemory);
+        bufferManager.copyDataToBuffer(maskMemory, maskData.data(), width * height * 4);
     }
 }
 
-void ComputePipeline::createDescriptorSet() {
+// Overloaded version of createBuffers (no mask)
+void ComputePipeline::createBuffers(const std::vector<unsigned char>& inputData) {
+    std::vector<unsigned char> dummy;
+    createBuffers(inputData, dummy);
+}
+
+// Modified createDescriptorSet with optional mask toggle
+void ComputePipeline::createDescriptorSet(bool useMask) {
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
@@ -176,7 +223,12 @@ void ComputePipeline::createDescriptorSet() {
     bufferInfos[1].offset = 0;
     bufferInfos[1].range = width * height * 4;
 
-    bufferInfos[2].buffer = maskBuffer ? maskBuffer : inputBuffer; // Fallback if no mask
+    if (useMask) {
+        if (!maskBuffer) throw std::runtime_error("Mask buffer is null in createDescriptorSet");
+        bufferInfos[2].buffer = maskBuffer;
+    } else {
+        bufferInfos[2].buffer = inputBuffer; // Dummy fallback: same as input
+    }
     bufferInfos[2].offset = 0;
     bufferInfos[2].range = width * height * 4;
 
@@ -191,6 +243,11 @@ void ComputePipeline::createDescriptorSet() {
     }
 
     vkUpdateDescriptorSets(engine.getDevice(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+}
+
+// Original version should now call with useMask = true
+void ComputePipeline::createDescriptorSet() {
+    createDescriptorSet(true);
 }
 
 void ComputePipeline::runCompute() {
@@ -220,9 +277,10 @@ void ComputePipeline::runCompute() {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-    float pushConstants[3] = { static_cast<float>(width), static_cast<float>(height), 1.0f }; // Brightness default
+    //float pushConstants[3] = { static_cast<float>(width), static_cast<float>(height), 1.0f }; // Brightness default
+    //vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
+    int pushConstants[2] = { width, height };
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
-
     uint32_t groupSizeX = (width + 15) / 16;
     uint32_t groupSizeY = (height + 15) / 16;
     vkCmdDispatch(commandBuffer, groupSizeX, groupSizeY, 1);

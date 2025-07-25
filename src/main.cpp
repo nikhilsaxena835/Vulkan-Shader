@@ -6,7 +6,7 @@ This program works as follows :
     2) On each of these images, run the ML model and make shades.
     3) For each new masked image, run the Vulkan Compute code.
     
-    Future Goals : Have a GUI using IMGUI for this system, rendering on screen is not a goal.
+    Future Goals : Have a GUI using IMGUI for this system, rendering on screen is not an immediate goal.
     The syntax is ./main <path_to_video_file> <compiled_shader_path> <flag_object_detection> 
     Eg : ./main test/video.mp4 ghibli.spv false
 */
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         std::string tempFramesDir = baseDir + "/temp_frames";
         std::string processedFramesDir = baseDir + "/processed_frames";
         std::string outputVideo = baseDir + "/output_" + inputPath.filename().string();    
-
+        std::cout << baseDir << tempFramesDir << processedFramesDir << std::endl;
         std::cout << "Extracting frames from video ..." << std::endl;
         extractFrames(videoPath, tempFramesDir);
         
@@ -62,14 +62,16 @@ int main(int argc, char* argv[])
         if(objectDetection){
             std::cout << "Masking frames and applying shaders ..." << std::endl;
             FrameProcessor fp (engine, tempFramesDir, processedFramesDir);
+            fp.processFramesWithMask();
         }
         else{
             std::cout << "Applying shaders ..." << std::endl;
             FrameProcessor fp (engine, tempFramesDir, processedFramesDir, shaderPath);
+            fp.processFrames();
         }
 
         std::cout << "Making video " << std::endl;
-        createVideo(processedFramesDir, outputVideo, inputPath, 30);
+        createVideo(processedFramesDir, outputVideo, videoPath, 30);
     }
     catch (const std::exception& e) 
     {
