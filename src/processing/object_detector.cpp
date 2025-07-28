@@ -105,7 +105,6 @@ void ObjectDetector::detect(const uint8_t* frame, int frameWidth, int frameHeigh
         std::cerr << "Forward pass failed: " << e.what() << std::endl;
         throw std::runtime_error("Failed to run forward pass");
     }
-    //std::cout << "Forward pass complete. Number of outputs: " << outputs.size() << std::endl;
 
     for (size_t i = 0; i < outputs.size(); ++i) {
         auto shape = outputs[i].GetTensorTypeAndShapeInfo().GetShape();
@@ -118,353 +117,247 @@ void ObjectDetector::detect(const uint8_t* frame, int frameWidth, int frameHeigh
 
     classMasks.clear();
 
-     auto* detectionsData = outputs[0].GetTensorMutableData<float>();
-    auto detShape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
-    int num_outputs   = static_cast<int>(detShape[1]);
-    int num_proposals = static_cast<int>(detShape[2]);
-    int num_classes   = static_cast<int>(classLabels.size());
-
-    std::vector<BBox> boxes;
-    std::vector<float> confidences;
-    std::vector<int> class_ids;
-    std::vector<std::vector<float>> masks;
-
-    const float CONF_THRESH = 0.3f;       // prune low scores
-
+    // Process outputs like Python code
+    auto* output0Data = outputs[0].GetTensorMutableData<float>();
+    auto output0Shape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
+    auto* output1Data = outputs[1].GetTensorMutableData<float>();
+    auto output1Shape = outputs[1].GetTensorTypeAndShapeInfo().GetShape();
+    
+    // output0: (1, 84+32, 8400) -> transpose to (8400, 116)
+    int num_proposals = static_cast<int>(output0Shape[2]); // 8400
+    int num_features = static_cast<int>(output0Shape[1]);  // 116 (84 for detection + 32 for masks)
+    int num_classes = static_cast<int>(classLabels.size());
+    
+    // output1: (1, 32, 160, 160) -> reshape to (32, 160*160)
+    int mask_channels = static_cast<int>(output1Shape[1]); // 32
+    int mask_height = static_cast<int>(output1Shape[2]);   // 160
+    int mask_width = static_cast<int>(output1Shape[3]);    // 160
+    
+    std::cout << "Processing " << num_proposals << " proposals with " << num_features << " features each" << std::endl;
+    std::cout << "Mask prototype: " << mask_channels << " channels, " << mask_height << "x" << mask_width << std::endl;
+    
+    // Transpose output0 from (1, 116, 8400) to (8400, 116)
+    std::vector<float> transposed_output0(num_proposals * num_features);
     for (int i = 0; i < num_proposals; ++i) {
-        float* data = detectionsData + i * num_outputs;
-
-        // Bounding box (center_x, center_y, w, h)
-        float cx = data[0], cy = data[1];
-        float bw = data[2], bh = data[3];
-
-        // 1) objectness
-        float obj_logit = data[4];
-        float objectness = 1.0f / (1.0f + std::exp(-obj_logit));
-
-        // 2) class logits + softmax
-        std::vector<float> cls_logits(num_classes);
-        float max_logit = -std::numeric_limits<float>::infinity();
-        for (int c = 0; c < num_classes; ++c) {
-            float l = data[5 + c];
-            cls_logits[c] = l;
-            max_logit = std::max(max_logit, l);
-        }
-        float sum_exp = 0.0f;
-        for (int c = 0; c < num_classes; ++c) {
-            cls_logits[c] = std::exp(cls_logits[c] - max_logit);
-            sum_exp += cls_logits[c];
-        }
-        for (int c = 0; c < num_classes; ++c)
-            cls_logits[c] /= sum_exp;
-
-        // 3) final confidence and class
-        auto best_it = std::max_element(cls_logits.begin(), cls_logits.end());
-        int cls_id = static_cast<int>(std::distance(cls_logits.begin(), best_it));
-        float conf = objectness * (*best_it);
-
-        // prune
-        if (conf < CONF_THRESH) continue;
-        std::string lbl = classLabels[cls_id];
-        if (shaderClasses.count(lbl) == 0) continue;
-
-        // transform to pixel-space bbox
-        float x1 = std::clamp(cx - bw/2, 0.0f, 1.0f);
-        float y1 = std::clamp(cy - bh/2, 0.0f, 1.0f);
-        float x2 = std::clamp(cx + bw/2, 0.0f, 1.0f);
-        float y2 = std::clamp(cy + bh/2, 0.0f, 1.0f);
-        int x = int(x1 * outputWidth), y = int(y1 * outputHeight);
-        int w = std::max(1, int((x2-x1) * outputWidth));
-        int h = std::max(1, int((y2-y1) * outputHeight));
-        x = std::clamp(x, 0, outputWidth - w);
-        y = std::clamp(y, 0, outputHeight - h);
-
-        boxes.push_back({x,y,w,h});
-        confidences.push_back(conf);
-        class_ids.push_back(cls_id);
-
-        // store raw mask coeffs
-        if (num_outputs > 5 + num_classes) {
-            int start = 5 + num_classes;
-            masks.emplace_back(data + start, data + num_outputs);
+        for (int j = 0; j < num_features; ++j) {
+            transposed_output0[i * num_features + j] = output0Data[j * num_proposals + i];
         }
     }
-
-    std::cout << "Found " << boxes.size() << " detections above confidence threshold" << std::endl;
-
-    // Apply Non-Maximum Suppression
-    std::vector<int> indices;
-    std::vector<std::pair<float, int>> conf_indices;
-    for (size_t i = 0; i < confidences.size(); ++i) 
-        conf_indices.emplace_back(confidences[i], static_cast<int>(i));
     
-    std::sort(conf_indices.begin(), conf_indices.end(), std::greater<>());
-
-    std::vector<bool> suppressed(boxes.size(), false);
-    for (const auto& [conf, i] : conf_indices) {
+    // Reshape output1 from (1, 32, 160, 160) to (32, 160*160)
+    std::vector<float> reshaped_output1(mask_channels * mask_height * mask_width);
+    for (int c = 0; c < mask_channels; ++c) {
+        for (int h = 0; h < mask_height; ++h) {
+            for (int w = 0; w < mask_width; ++w) {
+                int src_idx = c * mask_height * mask_width + h * mask_width + w;
+                int dst_idx = c * mask_height * mask_width + h * mask_width + w;
+                reshaped_output1[dst_idx] = output1Data[src_idx];
+            }
+        }
+    }
+    
+    struct Detection {
+        float x1, y1, x2, y2;
+        int class_id;
+        float prob;
+        std::vector<float> mask_data;
+        std::string label;
+    };
+    
+    std::vector<Detection> detections;
+    const float CONF_THRESH = 0.5f;
+    
+    // Process each proposal
+    for (int i = 0; i < num_proposals; ++i) {
+        float* proposal = &transposed_output0[i * num_features];
+        
+        // Get bounding box (center format)
+        float xc = proposal[0];
+        float yc = proposal[1];
+        float w = proposal[2];
+        float h = proposal[3];
+        
+        // Get class probabilities (84 classes starting from index 4)
+        float max_prob = 0.0f;
+        int best_class = 0;
+        for (int c = 0; c < num_classes && c < 84; ++c) {
+            if (proposal[4 + c] > max_prob) {
+                max_prob = proposal[4 + c];
+                best_class = c;
+            }
+        }
+        
+        // Filter by confidence threshold
+        if (max_prob < CONF_THRESH) continue;
+        
+        std::string class_label = classLabels[best_class];
+        if (shaderClasses.count(class_label) == 0) continue;
+        
+        // Convert to corner format and scale to image dimensions
+        float x1 = (xc - w / 2) / 640.0f * outputWidth;
+        float y1 = (yc - h / 2) / 640.0f * outputHeight;
+        float x2 = (xc + w / 2) / 640.0f * outputWidth;
+        float y2 = (yc + h / 2) / 640.0f * outputHeight;
+        
+        // Clamp to image bounds
+        x1 = std::max(0.0f, std::min(static_cast<float>(outputWidth - 1), x1));
+        y1 = std::max(0.0f, std::min(static_cast<float>(outputHeight - 1), y1));
+        x2 = std::max(x1 + 1.0f, std::min(static_cast<float>(outputWidth), x2));
+        y2 = std::max(y1 + 1.0f, std::min(static_cast<float>(outputHeight), y2));
+        
+        // Extract mask coefficients (32 values starting from index 84)
+        std::vector<float> mask_coeffs(mask_channels);
+        for (int c = 0; c < mask_channels; ++c) {
+            mask_coeffs[c] = proposal[84 + c];
+        }
+        
+        // Perform matrix multiplication: mask_coeffs @ reshaped_output1
+        std::vector<float> mask_result(mask_height * mask_width, 0.0f);
+        for (int pixel = 0; pixel < mask_height * mask_width; ++pixel) {
+            for (int c = 0; c < mask_channels; ++c) {
+                mask_result[pixel] += mask_coeffs[c] * reshaped_output1[c * mask_height * mask_width + pixel];
+            }
+        }
+        
+        Detection det;
+        det.x1 = x1;
+        det.y1 = y1;
+        det.x2 = x2;
+        det.y2 = y2;
+        det.class_id = best_class;
+        det.prob = max_prob;
+        det.mask_data = std::move(mask_result);
+        det.label = class_label;
+        
+        detections.push_back(std::move(det));
+    }
+    
+    std::cout << "Found " << detections.size() << " detections above confidence threshold" << std::endl;
+    
+    // Apply Non-Maximum Suppression
+    std::sort(detections.begin(), detections.end(), 
+              [](const Detection& a, const Detection& b) { return a.prob > b.prob; });
+    
+    std::vector<Detection> final_detections;
+    std::vector<bool> suppressed(detections.size(), false);
+    
+    for (size_t i = 0; i < detections.size(); ++i) {
         if (suppressed[i]) continue;
-        indices.push_back(i);
-        for (size_t j = 0; j < boxes.size(); ++j) {
-            if (suppressed[j] || i == static_cast<int>(j)) continue;
-            float iou = computeIoU(boxes[i], boxes[j]);
-            if (iou > nmsThreshold && class_ids[i] == class_ids[static_cast<int>(j)]) {
+        
+        final_detections.push_back(detections[i]);
+        
+        // Suppress overlapping detections of the same class
+        for (size_t j = i + 1; j < detections.size(); ++j) {
+            if (suppressed[j] || detections[i].class_id != detections[j].class_id) continue;
+            
+            // Calculate IoU
+            float inter_x1 = std::max(detections[i].x1, detections[j].x1);
+            float inter_y1 = std::max(detections[i].y1, detections[j].y1);
+            float inter_x2 = std::min(detections[i].x2, detections[j].x2);
+            float inter_y2 = std::min(detections[i].y2, detections[j].y2);
+            
+            float inter_area = std::max(0.0f, inter_x2 - inter_x1) * std::max(0.0f, inter_y2 - inter_y1);
+            float area1 = (detections[i].x2 - detections[i].x1) * (detections[i].y2 - detections[i].y1);
+            float area2 = (detections[j].x2 - detections[j].x1) * (detections[j].y2 - detections[j].y1);
+            float union_area = area1 + area2 - inter_area;
+            
+            float iou = union_area > 0 ? inter_area / union_area : 0;
+            if (iou > nmsThreshold) {
                 suppressed[j] = true;
             }
         }
     }
-    std::cout << "After NMS: " << indices.size() << " detections kept" << std::endl;
-    std::set<std::string> uniqueLabels;
-    for (int idx : indices) {
-        int class_id = class_ids[idx];
-        std::string label = classLabels[class_id];
-        uniqueLabels.insert(label);
-    }
-    std::cout << "Detected classes: ";
-    for (const auto& lbl : uniqueLabels) std::cout << lbl << " ";
-    std::cout << "\n";
-
-    for (int idx : indices) {
-        float score = confidences[idx];
-        std::cout << "Detection idx=" << idx << ", label=" << classLabels[class_ids[idx]]
-                << ", score=" << score << std::endl;
-    }
-
-
-    // Process segmentation masks if available
-    std::vector<float> protoData;
-    int mask_channels = 0, mask_height = 0, mask_width = 0;
-    if (outputs.size() > 1) {
-        auto protoShape = outputs[1].GetTensorTypeAndShapeInfo().GetShape();
-        if (protoShape.size() >= 4) {
-            mask_channels = static_cast<int>(protoShape[1]);
-            mask_height = static_cast<int>(protoShape[2]);
-            mask_width = static_cast<int>(protoShape[3]);
-            std::cout << "Prototype mask shape: [" << protoShape[0] << ", " << mask_channels 
-                      << ", " << mask_height << ", " << mask_width << "]" << std::endl;
-
-            float* protoRaw = outputs[1].GetTensorMutableData<float>();
-            protoData.assign(protoRaw, protoRaw + mask_channels * mask_height * mask_width);
-        }
-    }
-
-for (int idx : indices) {
-    int class_id = class_ids[idx];
-    std::string class_label = classLabels[class_id];
-
-    std::vector<uint8_t> mask(outputWidth * outputHeight, 0);
     
-    if (!masks.empty() && !protoData.empty() && static_cast<size_t>(idx) < masks.size()) {
-        std::vector<float>& mask_coeff = masks[idx];
-        std::vector<float> mask_out(mask_height * mask_width, 0.0f);
-
-        // Normalize mask coefficients
-        float coeff_max = *std::max_element(mask_coeff.begin(), mask_coeff.end());
-        float coeff_scale = (coeff_max > 0) ? 1.0f / coeff_max : 1.0f;
-        std::vector<float> normalized_coeff(mask_coeff.size());
-        for (size_t i = 0; i < mask_coeff.size(); ++i) {
-            normalized_coeff[i] = mask_coeff[i] * coeff_scale;
+    std::cout << "After NMS: " << final_detections.size() << " detections kept" << std::endl;
+    
+    // Process each detection to create masks
+    for (const auto& det : final_detections) {
+        // Apply sigmoid to mask
+        std::vector<float> sigmoid_mask(mask_height * mask_width);
+        for (size_t i = 0; i < det.mask_data.size(); ++i) {
+            sigmoid_mask[i] = 1.0f / (1.0f + std::exp(-det.mask_data[i]));
         }
-
-        // Debug: Check normalized mask coefficient values
-        float coeff_min = *std::min_element(normalized_coeff.begin(), normalized_coeff.end());
-        float coeff_max_new = *std::max_element(normalized_coeff.begin(), normalized_coeff.end());
-        std::cout << "Normalized mask coefficients for " << class_label << ": min=" << coeff_min << ", max=" << coeff_max_new << std::endl;
-
-        // Normalize protoData
-        float proto_max = *std::max_element(protoData.begin(), protoData.end());
-        float proto_min = *std::min_element(protoData.begin(), protoData.end());
-        float proto_scale = (proto_max > proto_min) ? 1.0f / (proto_max - proto_min) : 1.0f;
-        std::vector<float> normalized_proto(protoData.size());
-        for (size_t i = 0; i < protoData.size(); ++i) {
-            normalized_proto[i] = (protoData[i] - proto_min) * proto_scale;
+        
+        // Threshold the mask (> 0.5)
+        std::vector<uint8_t> binary_mask(mask_height * mask_width);
+        for (size_t i = 0; i < sigmoid_mask.size(); ++i) {
+            binary_mask[i] = sigmoid_mask[i] > 0.5f ? 255 : 0;
         }
-        std::cout << "Prototype data: min=" << proto_min << ", max=" << proto_max << std::endl;
-
-        // Apply normalized mask coefficients to normalized prototype masks
-        int valid_channels = std::min(static_cast<int>(normalized_coeff.size()), mask_channels);
-        for (int c = 0; c < valid_channels; ++c) {
-            for (int y = 0; y < mask_height; ++y) {
-                for (int x = 0; x < mask_width; ++x) {
-                    int proto_idx = c * mask_height * mask_width + y * mask_width + x;
-                    int mask_idx = y * mask_width + x;
-                    mask_out[mask_idx] += normalized_proto[proto_idx] * normalized_coeff[c];
-                }
-            }
-        }
-
-        // Debug: Check mask_out values before sigmoid
-        float mask_out_min = *std::min_element(mask_out.begin(), mask_out.end());
-        float mask_out_max = *std::max_element(mask_out.begin(), mask_out.end());
-        std::cout << "Mask output (pre-sigmoid) for " << class_label << ": min=" << mask_out_min << ", max=" << mask_out_max << std::endl;
-
-        // Apply sigmoid activation
-        for (size_t i = 0; i < mask_out.size(); ++i) {
-            mask_out[i] = 1.0f / (1.0f + std::exp(-mask_out[i]));
-        }
-
-        // Debug: Check mask_out values after sigmoid
-        mask_out_min = *std::min_element(mask_out.begin(), mask_out.end());
-        mask_out_max = *std::max_element(mask_out.begin(), mask_out.end());
-        std::cout << "Mask output (post-sigmoid) for " << class_label << ": min=" << mask_out_min << ", max=" << mask_out_max << std::endl;
-
-        // Save raw mask_out for debugging as PPM
-        std::vector<unsigned char> debug_mask(mask_height * mask_width * 3);
-        for (size_t i = 0; i < mask_out.size(); ++i) {
-            unsigned char value = static_cast<unsigned char>(mask_out[i] * 255.0f);
-            debug_mask[i * 3] = debug_mask[i * 3 + 1] = debug_mask[i * 3 + 2] = value;
-        }
-        std::string debug_filename = "debug_mask_" + class_label + "_" + std::to_string(idx) + ".ppm";
-        std::ofstream debug_file(debug_filename, std::ios::binary);
-        debug_file << "P6\n" << mask_width << " " << mask_height << "\n255\n";
-        debug_file.write(reinterpret_cast<const char*>(debug_mask.data()), debug_mask.size());
-        debug_file.close();
-        std::cout << "Saved debug mask image: " << debug_filename << std::endl;
-
-        // Get detection data for bounding box
-        float* data = detectionsData + idx * num_outputs;
-        float center_x = data[0] / 640.0f;  // Normalized coordinates
-        float center_y = data[1] / 640.0f;
-        float width_box = data[2] / 640.0f;
-        float height_box = data[3] / 640.0f;
-
-        // Clamp normalized coordinates
-        float center_x_clamped = std::max(0.0f, std::min(1.0f, center_x));
-        float center_y_clamped = std::max(0.0f, std::min(1.0f, center_y));
-        float width_box_clamped = std::max(0.0f, std::min(1.0f, width_box));
-        float height_box_clamped = std::max(0.0f, std::min(1.0f, height_box));
-
-        // Map bounding box to output coordinates
-        int box_x = static_cast<int>((center_x_clamped - width_box_clamped / 2.0f) * outputWidth);
-        int box_y = static_cast<int>((center_y_clamped - height_box_clamped / 2.0f) * outputHeight);
-        int box_w = static_cast<int>(width_box_clamped * outputWidth);
-        int box_h = static_cast<int>(height_box_clamped * outputHeight);
-
-        // Clamp to output bounds
-        box_x = std::max(0, std::min(box_x, outputWidth - 1));
-        box_y = std::max(0, std::min(box_y, outputHeight - 1));
-        box_w = std::max(1, std::min(box_w, outputWidth - box_x));
-        box_h = std::max(1, std::min(box_h, outputHeight - box_y));
-
-        std::cout << "Output bbox for " << class_label << ": (" << box_x << "," << box_y << "," << box_w << "," << box_h << ")" << std::endl;
-
-        // Resize mask_out to output resolution using bilinear interpolation
-        std::vector<float> resized_mask(outputWidth * outputHeight, 0.0f);
-        for (int y = 0; y < outputHeight; ++y) {
-            for (int x = 0; x < outputWidth; ++x) {
-                // Map output pixel to mask pixel
-                float mask_x_f = static_cast<float>(x) / outputWidth * mask_width;
-                float mask_y_f = static_cast<float>(y) / outputHeight * mask_height;
-
-                int x0 = static_cast<int>(mask_x_f);
-                int y0 = static_cast<int>(mask_y_f);
-                int x1 = std::min(x0 + 1, mask_width - 1);
-                int y1 = std::min(y0 + 1, mask_height - 1);
-                float dx = mask_x_f - x0;
-                float dy = mask_y_f - y0;
-
-                // Bilinear interpolation
-                int idx00 = y0 * mask_width + x0;
-                int idx01 = y0 * mask_width + x1;
-                int idx10 = y1 * mask_width + x0;
-                int idx11 = y1 * mask_width + x1;
-
-                float value = (1.0f - dx) * (1.0f - dy) * mask_out[idx00] +
-                              dx * (1.0f - dy) * mask_out[idx01] +
-                              (1.0f - dx) * dy * mask_out[idx10] +
-                              dx * dy * mask_out[idx11];
-
-                resized_mask[y * outputWidth + x] = value;
-            }
-        }
-
-        // Debug: Save resized mask before thresholding
-        std::vector<unsigned char> debug_resized_mask(outputWidth * outputHeight * 3);
-        for (size_t i = 0; i < resized_mask.size(); ++i) {
-            unsigned char value = static_cast<unsigned char>(resized_mask[i] * 255.0f);
-            debug_resized_mask[i * 3] = debug_resized_mask[i * 3 + 1] = debug_resized_mask[i * 3 + 2] = value;
-        }
-        std::string debug_resized_filename = "debug_resized_mask_" + class_label + "_" + std::to_string(idx) + ".ppm";
-        std::ofstream debug_resized_file(debug_resized_filename, std::ios::binary);
-        debug_resized_file << "P6\n" << outputWidth << " " << outputHeight << "\n255\n";
-        debug_resized_file.write(reinterpret_cast<const char*>(debug_resized_mask.data()), debug_resized_mask.size());
-        debug_resized_file.close();
-        std::cout << "Saved debug resized mask image: " << debug_resized_filename << std::endl;
-
-        // Dynamic thresholding based on mask_out distribution
-        std::vector<float> mask_out_sorted(mask_out.begin(), mask_out.end());
-        std::sort(mask_out_sorted.begin(), mask_out_sorted.end());
-        float threshold = mask_out_sorted[static_cast<size_t>(mask_out_sorted.size() * 0.9)]; // 90th percentile
-        threshold = std::max(0.8f, std::min(0.95f, threshold)); // Clamp between 0.8 and 0.95
-        std::cout << "Dynamic threshold for " << class_label << ": " << threshold << std::endl;
-
-        //float threshold = mask_out_sorted[static_cast<size_t>(mask_out_sorted.size() * 0.7)]; // 70th percentile
-        //threshold = std::max(0.5f, std::min(0.8f, threshold)); // Clamp between 0.5 and 0.8
-        //std::cout << "Dynamic threshold for " << class_label << ": " << threshold << std::endl;
-
-        // Generate final mask
-        int non_zero_count = 0;
-        for (int y = 0; y < outputHeight; ++y) {
-            for (int x = 0; x < outputWidth; ++x) {
-                int idx = y * outputWidth + x;
-                if (resized_mask[idx] >= threshold) {
-                    mask[idx] = 255; // Object pixels
-                    non_zero_count++;
-                }
+        
+        // Calculate mask bounds in mask coordinates
+        int mask_x1 = static_cast<int>(std::round(det.x1 / outputWidth * mask_width));
+        int mask_y1 = static_cast<int>(std::round(det.y1 / outputHeight * mask_height));
+        int mask_x2 = static_cast<int>(std::round(det.x2 / outputWidth * mask_width));
+        int mask_y2 = static_cast<int>(std::round(det.y2 / outputHeight * mask_height));
+        
+        // Clamp to mask bounds
+        mask_x1 = std::max(0, std::min(mask_x1, mask_width - 1));
+        mask_y1 = std::max(0, std::min(mask_y1, mask_height - 1));
+        mask_x2 = std::max(mask_x1 + 1, std::min(mask_x2, mask_width));
+        mask_y2 = std::max(mask_y1 + 1, std::min(mask_y2, mask_height));
+        
+        // Extract region of interest from mask
+        int roi_width = mask_x2 - mask_x1;
+        int roi_height = mask_y2 - mask_y1;
+        std::vector<uint8_t> roi_mask(roi_width * roi_height);
+        
+        for (int y = 0; y < roi_height; ++y) {
+            for (int x = 0; x < roi_width; ++x) {
+                int src_idx = (mask_y1 + y) * mask_width + (mask_x1 + x);
+                int dst_idx = y * roi_width + x;
+                roi_mask[dst_idx] = binary_mask[src_idx];
             }
         }
         
-        std::cout << "Final mask non-zero pixels for " << class_label << ": " << non_zero_count << " out of " << (outputWidth * outputHeight) << " total pixels" << std::endl;
-        std::cout << "Generated segmentation mask for class: " << class_label << ", size: " << outputWidth << "x" << outputHeight << std::endl;
-    } else {
-        // Debug: Log why fallback is triggered
-        std::cout << "Warning: Fallback to bounding box mask for " << class_label << ". ";
-        if (masks.empty()) std::cout << "Reason: masks vector is empty.";
-        else if (protoData.empty()) std::cout << "Reason: protoData is empty.";
-        else if (static_cast<size_t>(idx) >= masks.size()) std::cout << "Reason: idx exceeds masks size.";
-        std::cout << std::endl;
-
-        // Fallback: create bounding box mask
-        float* data = detectionsData + idx * num_outputs;
-        float center_x = data[0] / 640.0f;
-        float center_y = data[1] / 640.0f;
-        float width_box = data[2] / 640.0f;
-        float height_box = data[3] / 640.0f;
-
-        int box_x = static_cast<int>((center_x - width_box / 2.0f) * outputWidth);
-        int box_y = static_cast<int>((center_y - height_box / 2.0f) * outputHeight);
-        int box_w = static_cast<int>(width_box * outputWidth);
-        int box_h = static_cast<int>(height_box * outputHeight);
-
-        box_x = std::max(0, std::min(box_x, outputWidth - 1));
-        box_y = std::max(0, std::min(box_y, outputHeight - 1));
-        box_w = std::max(1, std::min(box_w, outputWidth - box_x));
-        box_h = std::max(1, std::min(box_h, outputHeight - box_y));
-
-        for (int y = box_y; y < box_y + box_h && y < outputHeight; ++y) {
-            for (int x = box_x; x < box_x + box_w && x < outputWidth; ++x) {
-                mask[y * outputWidth + x] = 255;
+        // Resize ROI mask to detection box size using bilinear interpolation
+        int det_width = static_cast<int>(std::round(det.x2 - det.x1));
+        int det_height = static_cast<int>(std::round(det.y2 - det.y1));
+        std::vector<uint8_t> resized_mask(det_width * det_height);
+        
+        for (int y = 0; y < det_height; ++y) {
+            for (int x = 0; x < det_width; ++x) {
+                float src_x = static_cast<float>(x) / det_width * roi_width;
+                float src_y = static_cast<float>(y) / det_height * roi_height;
+                
+                int x0 = static_cast<int>(src_x);
+                int y0 = static_cast<int>(src_y);
+                int x1 = std::min(x0 + 1, roi_width - 1);
+                int y1 = std::min(y0 + 1, roi_height - 1);
+                
+                float dx = src_x - x0;
+                float dy = src_y - y0;
+                
+                float p00 = roi_mask[y0 * roi_width + x0] / 255.0f;
+                float p01 = roi_mask[y0 * roi_width + x1] / 255.0f;
+                float p10 = roi_mask[y1 * roi_width + x0] / 255.0f;
+                float p11 = roi_mask[y1 * roi_width + x1] / 255.0f;
+                
+                float value = (1 - dx) * (1 - dy) * p00 + dx * (1 - dy) * p01 +
+                             (1 - dx) * dy * p10 + dx * dy * p11;
+                
+                resized_mask[y * det_width + x] = static_cast<uint8_t>(value * 255);
             }
         }
-        std::cout << "Created bounding box mask for class: " << class_label << std::endl;
-    }
-
-    classMasks[class_label].push_back(std::move(mask));
-    //classMasks[class_label] = std::move(mask);
-}
-
-
-
-
-    std::cout << "Total classMasks generated: " << classMasks.size() << std::endl;
-    // 3. Additional debugging - add this before processing masks
-    std::cout << "=== DEBUGGING INFO ===" << std::endl;
-    std::cout << "Target output size: " << outputWidth << "x" << outputHeight << std::endl;
-    std::cout << "Mask prototype size: " << mask_width << "x" << mask_height << std::endl;
-    for (size_t i = 0; i < std::min(indices.size(), size_t(3)); ++i) {
-        int idx = indices[i];
-        BBox& box = boxes[idx];
-        std::cout << "Detection " << idx << " final bbox: (" << box.x << "," << box.y << "," << box.w << "," << box.h << ")" << std::endl;
-        std::cout << "  Coverage: " << (100.0f * box.w * box.h / (outputWidth * outputHeight)) << "% of image" << std::endl;
+        
+        // Create final output mask
+        std::vector<uint8_t> output_mask(outputWidth * outputHeight, 0);
+        
+        // Place resized mask in the correct position
+        int start_x = static_cast<int>(det.x1);
+        int start_y = static_cast<int>(det.y1);
+        
+        for (int y = 0; y < det_height && (start_y + y) < outputHeight; ++y) {
+            for (int x = 0; x < det_width && (start_x + x) < outputWidth; ++x) {
+                int src_idx = y * det_width + x;
+                int dst_idx = (start_y + y) * outputWidth + (start_x + x);
+                output_mask[dst_idx] = resized_mask[src_idx];
+            }
+        }
+        
+        std::cout << "Generated segmentation mask for class: " << det.label 
+                  << ", size: " << outputWidth << "x" << outputHeight << std::endl;
+        
+        classMasks[det.label].push_back(std::move(output_mask));
     }
 }
 

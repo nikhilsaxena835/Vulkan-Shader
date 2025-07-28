@@ -68,18 +68,18 @@ void FrameProcessor::processFramesWithMask()
         loadPPMImage(frames[i].c_str(), inputData, width, height);
 
         std::vector<std::pair<std::string, std::vector<unsigned char>>> maskDataList;
-        if (i % 5 == 0) // Run segmentation every 5th frame
-        {
+        //if (i % 5 == 0) // Run segmentation every 5th frame
+        //{
             std::map<std::string, std::vector<std::vector<unsigned char>>> classMasks;
             objectDetector->detect(inputData.data(), width, height, 4, shaderClasses, classMasks, width, height);
             maskGenerator->generateMasks(classMasks, maskDataList, width, height);
-            prevMaskDataList = maskDataList;
-            for (const auto& [classLabel, maskData] : maskDataList) {
-                maskGenerator->saveMaskForDebug(classLabel, maskData, width, height, outputDir);
-            }
-        }
-        else
-            maskDataList = prevMaskDataList;
+            //prevMaskDataList = maskDataList;
+          //  for (const auto& [classLabel, maskData] : maskDataList) {
+          //      maskGenerator->saveMaskForDebug(classLabel, maskData, width, height, outputDir);
+          //  }
+      //  }
+       // else
+        //    maskDataList = prevMaskDataList;
 
         std::vector<unsigned char> outputData = inputData;
         std::cout << "The size of maskDataList is " << maskDataList.size() << std::endl;
